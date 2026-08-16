@@ -436,16 +436,54 @@
   const LS_TENANTS = "xc_tenants";
   const SS_SESSION = "xc_session";
 
-  function loadTenants(){
-    try{ return JSON.parse(localStorage.getItem(LS_TENANTS)) || []; }
-    catch(e){ return []; }
+  // Some browsers (Safari on file://, private-browsing modes, sandboxed
+  // viewers) throw on any localStorage/sessionStorage access rather than
+  // just failing to persist. Fall back to in-memory state so the app still
+  // works for the current tab even when persistence isn't available.
+  let memoryTenants = [];
+  let memorySession = null;
+  let storageWarned = false;
+  function warnStorageOnce(){
+    if(!storageWarned){
+      storageWarned = true;
+      console.warn('F5 XC Metric Collections: browser storage is unavailable here, so tenants and login will not persist across reloads. Try serving this file over http:// instead of opening it directly, or a different browser.');
+    }
   }
-  function saveTenants(list){ localStorage.setItem(LS_TENANTS, JSON.stringify(list)); }
 
-  function isAuthed(){ return sessionStorage.getItem(SS_SESSION) !== null; }
-  function getUsername(){ return sessionStorage.getItem(SS_SESSION) || ""; }
-  function setSession(username){ sessionStorage.setItem(SS_SESSION, username); }
-  function clearSession(){ sessionStorage.removeItem(SS_SESSION); }
+  function loadTenants(){
+    try{
+      const raw = localStorage.getItem(LS_TENANTS);
+      return raw ? JSON.parse(raw) : memoryTenants;
+    }catch(e){ warnStorageOnce(); return memoryTenants; }
+  }
+  function saveTenants(list){
+    memoryTenants = list;
+    try{ localStorage.setItem(LS_TENANTS, JSON.stringify(list)); }
+    catch(e){ warnStorageOnce(); }
+  }
+
+  function isAuthed(){
+    try{ if(sessionStorage.getItem(SS_SESSION) !== null) return true; }
+    catch(e){ warnStorageOnce(); }
+    return memorySession !== null;
+  }
+  function getUsername(){
+    try{
+      const v = sessionStorage.getItem(SS_SESSION);
+      if(v !== null) return v;
+    }catch(e){ warnStorageOnce(); }
+    return memorySession || "";
+  }
+  function setSession(username){
+    memorySession = username;
+    try{ sessionStorage.setItem(SS_SESSION, username); }
+    catch(e){ warnStorageOnce(); }
+  }
+  function clearSession(){
+    memorySession = null;
+    try{ sessionStorage.removeItem(SS_SESSION); }
+    catch(e){ warnStorageOnce(); }
+  }
 
   /* ============================================================
      DETERMINISTIC MOCK METRIC ENGINE
