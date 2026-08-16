@@ -505,9 +505,13 @@
     const count = 3 + Math.floor(rand() * 4); // 3-6
     const suffixes = ["web", "api", "admin", "mobile", "static", "checkout", "auth"];
     const lbs = [];
+    const usedSuffixes = new Set();
     for(let i=0;i<count;i++){
-      const suf = suffixes[Math.floor(rand()*suffixes.length)] + (i>3 ? `-${i}` : "");
-      const name = `lb-${slug(tenant.tenantId)}-${suf}`;
+      let suf = suffixes[Math.floor(rand()*suffixes.length)];
+      let unique = suf, n = 2;
+      while(usedSuffixes.has(unique)){ unique = `${suf}-${n}`; n++; }
+      usedSuffixes.add(unique);
+      const name = `lb-${slug(tenant.tenantId)}-${unique}`;
       const statusRoll = rand();
       const status = statusRoll > 0.93 ? "err" : statusRoll > 0.82 ? "warn" : "ok";
       lbs.push({
@@ -516,9 +520,7 @@
         status,
       });
     }
-    // de-dupe names just in case
-    const seen = new Set();
-    return lbs.filter(l => seen.has(l.name) ? false : (seen.add(l.name), true));
+    return lbs;
   }
 
   function slug(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
