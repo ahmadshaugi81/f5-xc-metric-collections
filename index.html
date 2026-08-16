@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>F5 XC Metric Collections</title>
+<style>
+  :root{
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --border: #e2e8f0;
+    --text: #1a2433;
+    --text-dim: #5b6b82;
+    --text-faint: #8a97a8;
+    --accent: #0057b8;
+    --accent-2: #2f7de1;
+    --accent-soft: #e8f1fd;
+    --ok: #1a9e6f;
+    --warn: #c98a11;
+    --err: #d1453b;
+    --shadow: 0 1px 2px rgba(20,30,50,.06), 0 4px 16px rgba(20,30,50,.05);
+    --radius: 10px;
+    font-synthesis: none;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg: #0f1420;
+      --surface: #161d2b;
+      --surface-2: #1c2434;
+      --border: #2a3448;
+      --text: #e7ecf5;
+      --text-dim: #a3b0c4;
+      --text-faint: #6c7893;
+      --accent: #4d92ff;
+      --accent-2: #6fa6ff;
+      --accent-soft: #17274a;
+      --ok: #3ecf94;
+      --warn: #e0a83e;
+      --err: #f0685f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 20px rgba(0,0,0,.35);
+    }
+  }
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  button, input{ font-family: inherit; }
+  a{ color: var(--accent); }
+
+  .hidden{ display:none !important; }
+
+  /* ---------- Top nav ---------- */
+  header.topnav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top:0; z-index: 20;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.2px; }
+  .brand .mark{
+    width:28px; height:28px; border-radius:7px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display:flex; align-items:center; justify-content:center;
+    color:white; font-size:13px; font-weight:800;
+  }
+  .brand small{ color: var(--text-faint); font-weight:500; }
+  .nav-right{ display:flex; align-items:center; gap:14px; }
+  .nav-user{ color: var(--text-dim); font-size:13px; }
+  .btn{
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .12s, border-color .12s, transform .05s;
+  }
+  .btn:hover{ background: var(--surface-2); }
+  .btn:active{ transform: translateY(1px); }
+  .btn.primary{ background: var(--accent); border-color: var(--accent); color: white; }
+  .btn.primary:hover{ background: var(--accent-2); border-color: var(--accent-2); }
+  .btn.danger{ color: var(--err); border-color: var(--border); }
+  .btn.danger:hover{ background: rgba(209,69,59,.08); border-color: var(--err); }
+  .btn.small{ padding:5px 10px; font-size:12.5px; }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  main{ max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  .view{ animation: fade .15s ease; }
+  @keyframes fade{ from{ opacity:0; transform: translateY(4px);} to{opacity:1; transform:none;} }
+
+  /* ---------- Login ---------- */
+  .login-wrap{
+    min-height: calc(100vh - 57px);
+    display:flex; align-items:center; justify-content:center;
+    padding: 20px;
+  }
+  .login-card{
+    width: 100%; max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px 28px;
+  }
+  .login-card h1{ font-size: 19px; margin: 4px 0 2px; }
+  .login-card p.sub{ color: var(--text-dim); font-size: 13px; margin: 0 0 22px; }
+  .field{ margin-bottom: 16px; }
+  .field label{ display:block; font-size: 12.5px; font-weight:600; color: var(--text-dim); margin-bottom: 6px; }
+  .field input, .field select{
+    width:100%; padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+  }
+  .field input:focus, .field select:focus{ border-color: var(--accent); background: var(--surface); }
+  .field .hint{ font-size: 11.5px; color: var(--text-faint); margin-top: 5px; }
+  .field .error{ font-size: 11.5px; color: var(--err); margin-top: 5px; display:none; }
+  .field.has-error input{ border-color: var(--err); }
+  .field.has-error .error{ display:block; }
+  .demo-note{
+    margin-top: 18px; font-size: 11.5px; color: var(--text-faint);
+    background: var(--surface-2); border: 1px dashed var(--border);
+    padding: 10px 12px; border-radius: 8px; line-height:1.5;
+  }
+  .form-actions{ margin-top: 4px; }
+  .form-actions .btn{ width:100%; padding: 10px; font-size:14px; }
+
+  /* ---------- Section headers ---------- */
+  .section-head{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    margin-bottom: 18px; flex-wrap:wrap; gap: 10px;
+  }
+  .section-head h1{ font-size: 20px; margin:0 0 4px; }
+  .section-head p{ margin:0; color: var(--text-dim); font-size:13px; }
+  .breadcrumb{ font-size: 12.5px; color: var(--text-faint); margin-bottom: 6px; }
+  .breadcrumb a{ text-decoration:none; }
+  .breadcrumb a:hover{ text-decoration:underline; }
+
+  /* ---------- Tenant list ---------- */
+  .tenant-grid{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(270px,1fr));
+    gap: 14px;
+  }
+  .card{
+    background: var(--surface); border:1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 18px;
+  }
+  .tenant-card{ cursor:pointer; transition: border-color .12s, transform .08s; }
+  .tenant-card:hover{ border-color: var(--accent-2); transform: translateY(-1px); }
+  .tenant-card .row1{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .tenant-card h3{ margin:0; font-size: 15.5px; }
+  .tenant-card .tenant-id{ font-size: 11.5px; color: var(--text-faint); margin-top:3px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .status-dot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+  .status-dot.ok{ background: var(--ok); }
+  .status-dot.warn{ background: var(--warn); }
+  .status-dot.err{ background: var(--err); }
+  .tenant-card .meta{ margin-top: 14px; display:flex; gap: 18px; font-size:12px; color: var(--text-dim); }
+  .tenant-card .meta b{ display:block; color: var(--text); font-size: 15px; font-weight:700; }
+  .tenant-card .card-actions{ margin-top: 14px; display:flex; gap:8px; }
+
+  .empty-state{
+    text-align:center; padding: 60px 20px; color: var(--text-dim);
+    border: 1.5px dashed var(--border); border-radius: var(--radius);
+  }
+  .empty-state .icon{ font-size: 34px; margin-bottom: 10px; }
+  .empty-state h3{ margin: 0 0 6px; color: var(--text); }
+  .empty-state p{ margin: 0 0 16px; font-size: 13.5px; }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop{
+    position: fixed; inset:0; background: rgba(10,15,25,.5);
+    display:flex; align-items:center; justify-content:center; z-index: 50;
+    padding: 20px;
+  }
+  .modal{
+    background: var(--surface); border-radius: var(--radius); border:1px solid var(--border);
+    width: 100%; max-width: 440px; box-shadow: var(--shadow);
+    padding: 24px 24px 20px;
+  }
+  .modal h2{ margin: 0 0 4px; font-size: 17px; }
+  .modal p.sub{ margin: 0 0 18px; color: var(--text-dim); font-size: 13px; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top: 6px; }
+  .pw-toggle{ display:flex; gap:8px; align-items:center; }
+  .pw-toggle input[type=text], .pw-toggle input[type=password]{ flex:1; }
+
+  /* ---------- Tenant dashboard ---------- */
+  .toolbar{
+    display:flex; align-items:center; justify-content:space-between;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+  }
+  .range-select{
+    display:inline-flex; background: var(--surface); border:1px solid var(--border);
+    border-radius: 999px; padding: 3px; box-shadow: var(--shadow);
+  }
+  .range-select button{
+    border: none; background: transparent; color: var(--text-dim);
+    padding: 7px 14px; border-radius: 999px; font-size: 12.5px; font-weight:600;
+    cursor:pointer;
+  }
+  .range-select button.active{ background: var(--accent); color: white; }
+
+  .stat-row{ display:grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom: 20px; }
+  .stat-card{ background: var(--surface); border:1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); }
+  .stat-card .label{ font-size: 12px; color: var(--text-dim); font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+  .stat-card .value{ font-size: 24px; font-weight: 800; margin-top: 6px; }
+  .stat-card .delta{ font-size: 12px; margin-top: 4px; font-weight:600; }
+  .delta.up{ color: var(--ok); }
+  .delta.down{ color: var(--err); }
+  .delta.flat{ color: var(--text-faint); }
+
+  .panel-grid{ display:grid; grid-template-columns: repeat(auto-fit,minmax(320px,1fr)); gap:16px; margin-bottom: 26px; }
+  .panel{ background: var(--surface); border:1px solid var(--border); border-radius: var(--radius); padding: 16px 18px 10px; box-shadow: var(--shadow); position:relative; }
+  .panel h4{ margin:0 0 2px; font-size:13.5px; }
+  .panel .unit{ font-size: 11.5px; color: var(--text-faint); }
+  .chart-svg{ width:100%; height: 150px; display:block; margin-top: 8px; }
+  .chart-tooltip{
+    position:absolute; pointer-events:none; background: var(--text); color: var(--bg);
+    font-size: 11.5px; padding: 5px 8px; border-radius: 6px; white-space:nowrap;
+    transform: translate(-50%, -125%); opacity:0; transition: opacity .08s; z-index: 5;
+  }
+  .chart-tooltip.show{ opacity:1; }
+
+  h2.subhead{ font-size: 15px; margin: 0 0 12px; }
+  .lb-list{ display:grid; gap: 10px; }
+  .lb-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background: var(--surface); border:1px solid var(--border); border-radius: var(--radius);
+    padding: 13px 16px; cursor:pointer; box-shadow: var(--shadow);
+    transition: border-color .12s, transform .08s;
+  }
+  .lb-row:hover{ border-color: var(--accent-2); transform: translateY(-1px); }
+  .lb-row .lb-name{ font-weight:700; font-size: 14px; }
+  .lb-row .lb-domain{ font-size: 12px; color: var(--text-faint); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-top:2px; }
+  .lb-row .lb-stats{ display:flex; gap:22px; align-items:center; }
+  .lb-row .lb-stats .mini{ text-align:right; }
+  .lb-row .lb-stats .mini .n{ font-weight:700; font-size:14px; }
+  .lb-row .lb-stats .mini .l{ font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em; }
+  .badge{ font-size:11px; font-weight:700; padding: 3px 9px; border-radius: 999px; text-transform:uppercase; letter-spacing:.02em; }
+  .badge.ok{ background: rgba(26,158,111,.12); color: var(--ok); }
+  .badge.warn{ background: rgba(201,138,17,.12); color: var(--warn); }
+  .badge.err{ background: rgba(209,69,59,.12); color: var(--err); }
+
+  .apikey-cell{ display:flex; align-items:center; gap:6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12.5px; color:var(--text-dim); }
+  .apikey-cell button{ border:none; background:none; color: var(--accent); cursor:pointer; font-size:11.5px; font-weight:600; padding:0; }
+
+  .security-note{
+    display:flex; gap:10px; align-items:flex-start;
+    background: var(--accent-soft); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 22px;
+    font-size: 12.5px; color: var(--text-dim); line-height:1.5;
+  }
+  .security-note .ic{ font-size:16px; line-height:1; }
+
+  footer.foot{ text-align:center; color: var(--text-faint); font-size: 11.5px; padding: 30px 0 10px; }
+</style>
+</head>
+<body>
+
+<header class="topnav">
+  <div class="brand">
+    <div class="mark">XC</div>
+    <div>F5 XC Metric Collections <br/><small id="nav-subtitle">Distributed Cloud tenant monitoring</small></div>
+  </div>
+  <div class="nav-right hidden" id="nav-user-block">
+    <span class="nav-user">Signed in as <strong id="nav-username">—</strong></span>
+    <button class="btn small" id="btn-logout">Log out</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ===================== LOGIN VIEW ===================== -->
+  <section class="view" id="view-login">
+    <div class="login-wrap">
+      <div class="login-card">
+        <h1>Sign in</h1>
+        <p class="sub">Access your F5 Distributed Cloud metrics workspace.</p>
+        <form id="login-form" novalidate>
+          <div class="field" id="field-username">
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" autocomplete="username" placeholder="jane.doe" />
+            <div class="error">Enter a username.</div>
+          </div>
+          <div class="field" id="field-password">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••" />
+            <div class="error">Enter a password.</div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn primary">Log in</button>
+          </div>
+        </form>
+        <div class="demo-note">
+          <strong>Demo mode.</strong> This prototype has no auth backend yet — any non-empty username/password signs you in locally. Wire this form up to your real identity provider before shipping.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== TENANT LIST VIEW ===================== -->
+  <section class="view hidden" id="view-tenants">
+    <div class="section-head">
+      <div>
+        <h1>Monitored XC Tenants</h1>
+        <p>Tenants you're collecting metrics from. Add a tenant to start monitoring it.</p>
+      </div>
+      <button class="btn primary" id="btn-open-add-tenant">+ Add Tenant</button>
+    </div>
+
+    <div id="tenant-empty" class="empty-state hidden">
+      <div class="icon">☁️</div>
+      <h3>No tenants yet</h3>
+      <p>Add your first F5 Distributed Cloud tenant to start collecting metrics.</p>
+      <button class="btn primary" id="btn-open-add-tenant-2">+ Add Tenant</button>
+    </div>
+
+    <div class="tenant-grid" id="tenant-grid"></div>
+  </section>
+
+  <!-- ===================== TENANT DASHBOARD VIEW ===================== -->
+  <section class="view hidden" id="view-dashboard">
+    <div class="breadcrumb"><a href="#/tenants">Monitored Tenants</a> / <span id="db-crumb-name">—</span></div>
+    <div class="section-head">
+      <div>
+        <h1 id="db-tenant-name">—</h1>
+        <p>Tenant ID: <span id="db-tenant-id" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">—</span></p>
+      </div>
+      <button class="btn danger small" id="btn-remove-tenant">Remove tenant</button>
+    </div>
+
+    <div class="toolbar">
+      <h2 class="subhead" style="margin:0;">Tenant-wide metrics</h2>
+      <div class="range-select" id="range-select" data-scope="tenant">
+        <button data-range="hourly">Hourly</button>
+        <button data-range="daily">Daily</button>
+        <button data-range="weekly" class="active">Weekly</button>
+        <button data-range="monthly">Monthly</button>
+        <button data-range="yearly">Yearly</button>
+      </div>
+    </div>
+
+    <div class="stat-row" id="db-stat-row"></div>
+    <div class="panel-grid" id="db-panel-grid"></div>
+
+    <h2 class="subhead">HTTP Load Balancers</h2>
+    <div class="lb-list" id="lb-list"></div>
+  </section>
+
+  <!-- ===================== LB DETAIL VIEW ===================== -->
+  <section class="view hidden" id="view-lb">
+    <div class="breadcrumb">
+      <a href="#/tenants">Monitored Tenants</a> / <a href="#" id="lb-crumb-tenant">—</a> / <span id="lb-crumb-name">—</span>
+    </div>
+    <div class="section-head">
+      <div>
+        <h1 id="lb-name">—</h1>
+        <p id="lb-domain" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">—</p>
+      </div>
+      <span class="badge" id="lb-status-badge">—</span>
+    </div>
+
+    <div class="toolbar">
+      <h2 class="subhead" style="margin:0;">Load balancer metrics</h2>
+      <div class="range-select" id="lb-range-select" data-scope="lb">
+        <button data-range="hourly">Hourly</button>
+        <button data-range="daily">Daily</button>
+        <button data-range="weekly" class="active">Weekly</button>
+        <button data-range="monthly">Monthly</button>
+        <button data-range="yearly">Yearly</button>
+      </div>
+    </div>
+
+    <div class="stat-row" id="lb-stat-row"></div>
+    <div class="panel-grid" id="lb-panel-grid"></div>
+  </section>
+
+</main>
+
+<footer class="foot">F5 XC Metric Collections — local prototype, data stored in this browser only.</footer>
+
+<!-- ===================== ADD TENANT MODAL ===================== -->
+<div class="modal-backdrop hidden" id="modal-add-tenant">
+  <div class="modal">
+    <h2>Add XC Tenant</h2>
+    <p class="sub">Connect a Distributed Cloud tenant to start pulling its metrics.</p>
+    <form id="add-tenant-form" novalidate>
+      <div class="field" id="field-tenant-name">
+        <label for="tenant-name">Name</label>
+        <input type="text" id="tenant-name" placeholder="Production Tenant" />
+        <div class="hint">A friendly label — shown on the dashboard.</div>
+        <div class="error">Enter a name.</div>
+      </div>
+      <div class="field" id="field-tenant-id">
+        <label for="tenant-id">Tenant ID</label>
+        <input type="text" id="tenant-id" placeholder="acme-prod" />
+        <div class="hint">The XC tenant identifier, e.g. as seen in console.ves.io/&lt;tenant&gt;.</div>
+        <div class="error">Enter a tenant ID.</div>
+      </div>
+      <div class="field" id="field-tenant-key">
+        <label for="tenant-key">API Key</label>
+        <div class="pw-toggle">
+          <input type="password" id="tenant-key" placeholder="API credential" />
+          <button type="button" class="btn small" id="btn-toggle-key">Show</button>
+        </div>
+        <div class="hint">Stored only in this browser's local storage for this prototype — never sent anywhere.</div>
+        <div class="error">Enter an API key.</div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="btn-cancel-add-tenant">Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     STORAGE
+     ============================================================ */
+  const LS_TENANTS = "xc_tenants";
+  const SS_SESSION = "xc_session";
+
+  function loadTenants(){
+    try{ return JSON.parse(localStorage.getItem(LS_TENANTS)) || []; }
+    catch(e){ return []; }
+  }
+  function saveTenants(list){ localStorage.setItem(LS_TENANTS, JSON.stringify(list)); }
+
+  function isAuthed(){ return sessionStorage.getItem(SS_SESSION) !== null; }
+  function getUsername(){ return sessionStorage.getItem(SS_SESSION) || ""; }
+  function setSession(username){ sessionStorage.setItem(SS_SESSION, username); }
+  function clearSession(){ sessionStorage.removeItem(SS_SESSION); }
+
+  /* ============================================================
+     DETERMINISTIC MOCK METRIC ENGINE
+     (swap this section for real F5 XC API calls behind a backend proxy)
+     ============================================================ */
+  function hashSeed(str){
+    let h = 2166136261;
+    for(let i=0;i<str.length;i++){
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+  function mulberry32(seed){
+    return function(){
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const RANGES = {
+    hourly:  { buckets: 24, label: "Last 24 hours",  fmt: i => `${(24-1-i+24)%24}:00`.padStart(5,'0') },
+    daily:   { buckets: 14, label: "Last 14 days",   fmt: i => `Day ${i+1}` },
+    weekly:  { buckets: 12, label: "Last 12 weeks",  fmt: i => `Wk ${i+1}` },
+    monthly: { buckets: 12, label: "Last 12 months", fmt: i => MONTHS[i % 12] },
+    yearly:  { buckets: 5,  label: "Last 5 years",   fmt: i => `${2022+i}` },
+  };
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  // returns { requests:[...], errorRate:[...], latencyP95:[...] } each an array of {label, value}
+  function generateSeries(seedKey, rangeKey){
+    const range = RANGES[rangeKey];
+    const n = range.buckets;
+    const rand = mulberry32(hashSeed(seedKey + ":" + rangeKey));
+    const baseReq = 200 + Math.floor(rand() * 4000);
+    const baseLatency = 40 + Math.floor(rand() * 120);
+    const baseErr = rand() * 1.2;
+
+    const requests = [], errorRate = [], latencyP95 = [];
+    let reqTrend = baseReq, latTrend = baseLatency;
+    for(let i=0;i<n;i++){
+      const wobble = (rand() - 0.5);
+      reqTrend = Math.max(10, reqTrend * (1 + wobble * 0.18));
+      latTrend = Math.max(5, latTrend * (1 + (rand()-0.5) * 0.12));
+      const err = Math.max(0, baseErr + (rand()-0.5) * 1.0 + (rand() > 0.92 ? rand()*4 : 0));
+      requests.push({ label: range.fmt(i), value: Math.round(reqTrend) });
+      latencyP95.push({ label: range.fmt(i), value: Math.round(latTrend) });
+      errorRate.push({ label: range.fmt(i), value: Math.round(err * 100) / 100 });
+    }
+    return { requests, errorRate, latencyP95 };
+  }
+
+  function generateLbList(tenant){
+    const rand = mulberry32(hashSeed(tenant.tenantId + ":lbs"));
+    const count = 3 + Math.floor(rand() * 4); // 3-6
+    const suffixes = ["web", "api", "admin", "mobile", "static", "checkout", "auth"];
+    const lbs = [];
+    const usedSuffixes = new Set();
+    for(let i=0;i<count;i++){
+      let suf = suffixes[Math.floor(rand()*suffixes.length)];
+      let unique = suf, n = 2;
+      while(usedSuffixes.has(unique)){ unique = `${suf}-${n}`; n++; }
+      usedSuffixes.add(unique);
+      const name = `lb-${slug(tenant.tenantId)}-${unique}`;
+      const statusRoll = rand();
+      const status = statusRoll > 0.93 ? "err" : statusRoll > 0.82 ? "warn" : "ok";
+      lbs.push({
+        name,
+        domain: `${name}.${slug(tenant.tenantId)}.internal.ves.io`,
+        status,
+      });
+    }
+    return lbs;
+  }
+
+  function slug(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
+
+  /* ============================================================
+     CHART RENDERING (self-contained SVG line/area chart)
+     ============================================================ */
+  const tooltipEl = document.createElement('div');
+  tooltipEl.className = 'chart-tooltip';
+  document.body.appendChild(tooltipEl);
+
+  function renderChart(container, series, opts){
+    opts = opts || {};
+    const color = opts.color || getCssVar('--accent');
+    const unit = opts.unit || "";
+    const W = 600, H = 150, padL = 8, padR = 8, padT = 10, padB = 18;
+    const n = series.length;
+    const values = series.map(p => p.value);
+    let min = Math.min(...values), max = Math.max(...values);
+    if(min === max){ min -= 1; max += 1; }
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    function xAt(i){ return padL + (n === 1 ? plotW/2 : i * (plotW/(n-1))); }
+    function yAt(v){ return padT + plotH * (1 - (v - min)/(max - min)); }
+
+    let path = "", area = "";
+    series.forEach((p,i) => {
+      const x = xAt(i), y = yAt(p.value);
+      path += (i===0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+    });
+    area = path + `L${xAt(n-1).toFixed(1)},${(padT+plotH).toFixed(1)} L${xAt(0).toFixed(1)},${(padT+plotH).toFixed(1)} Z`;
+
+    const gradId = "grad-" + Math.random().toString(36).slice(2,9);
+
+    container.innerHTML = `
+      <svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${color}" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <line x1="${padL}" y1="${(padT+plotH).toFixed(1)}" x2="${W-padR}" y2="${(padT+plotH).toFixed(1)}" stroke="var(--border)" stroke-width="1"/>
+        <path d="${area}" fill="url(#${gradId})" stroke="none"></path>
+        <path d="${path}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+      </svg>
+    `;
+    const svg = container.querySelector('svg');
+
+    svg.addEventListener('mousemove', (e) => {
+      const rect = svg.getBoundingClientRect();
+      const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+      const idx = Math.round(frac * (n - 1));
+      const p = series[idx];
+      tooltipEl.textContent = `${p.label}: ${p.value}${unit}`;
+      tooltipEl.style.left = e.clientX + 'px';
+      tooltipEl.style.top = rect.top + 'px';
+      tooltipEl.classList.add('show');
+    });
+    svg.addEventListener('mouseleave', () => tooltipEl.classList.remove('show'));
+  }
+
+  function getCssVar(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#0057b8';
+  }
+
+  function renderStatCard(label, series, unit, higherIsBad){
+    const last = series[series.length-1].value;
+    const prev = series.length > 1 ? series[series.length-2].value : last;
+    const diff = prev === 0 ? 0 : ((last - prev) / prev) * 100;
+    const dir = diff > 0.5 ? 'up' : diff < -0.5 ? 'down' : 'flat';
+    const dirClass = higherIsBad ? (dir === 'up' ? 'down' : dir === 'down' ? 'up' : 'flat') : dir;
+    const arrow = dir === 'up' ? '▲' : dir === 'down' ? '▼' : '·';
+    return `
+      <div class="stat-card">
+        <div class="label">${label}</div>
+        <div class="value">${formatNum(last)}${unit}</div>
+        <div class="delta ${dirClass}">${arrow} ${Math.abs(diff).toFixed(1)}% vs prior period</div>
+      </div>
+    `;
+  }
+
+  function formatNum(n){
+    if(n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,'') + 'k';
+    return String(n);
+  }
+
+  function renderMetricPanels(gridEl, statRowEl, series){
+    statRowEl.innerHTML =
+      renderStatCard('Requests', series.requests, '', false) +
+      renderStatCard('Error Rate', series.errorRate, '%', true) +
+      renderStatCard('Latency P95', series.latencyP95, 'ms', true);
+
+    gridEl.innerHTML = `
+      <div class="panel">
+        <h4>Requests <span class="unit">count / bucket</span></h4>
+        <div class="chart" data-chart="requests"></div>
+      </div>
+      <div class="panel">
+        <h4>Error Rate <span class="unit">%</span></h4>
+        <div class="chart" data-chart="errorRate"></div>
+      </div>
+      <div class="panel">
+        <h4>Latency P95 <span class="unit">ms</span></h4>
+        <div class="chart" data-chart="latencyP95"></div>
+      </div>
+    `;
+    renderChart(gridEl.querySelector('[data-chart=requests]'), series.requests, { color: getCssVar('--accent'), unit: '' });
+    renderChart(gridEl.querySelector('[data-chart=errorRate]'), series.errorRate, { color: getCssVar('--err'), unit: '%' });
+    renderChart(gridEl.querySelector('[data-chart=latencyP95]'), series.latencyP95, { color: getCssVar('--ok'), unit: 'ms' });
+  }
+
+  /* ============================================================
+     ROUTER
+     ============================================================ */
+  let dbRange = 'weekly';
+  let lbRange = 'weekly';
+
+  function parseRoute(){
+    const hash = location.hash.replace(/^#\/?/, '');
+    const parts = hash.split('/').filter(Boolean);
+    return parts;
+  }
+
+  function navigate(hash){ location.hash = hash; }
+
+  function route(){
+    const parts = parseRoute();
+
+    if(!isAuthed()){
+      showOnly('view-login');
+      updateNavUser();
+      return;
+    }
+
+    if(parts[0] === 'tenant' && parts[1] && parts[2] === 'lb' && parts[3]){
+      renderLbView(decodeURIComponent(parts[1]), decodeURIComponent(parts[3]));
+      showOnly('view-lb');
+    } else if(parts[0] === 'tenant' && parts[1]){
+      renderDashboardView(decodeURIComponent(parts[1]));
+      showOnly('view-dashboard');
+    } else {
+      renderTenantList();
+      showOnly('view-tenants');
+    }
+    updateNavUser();
+  }
+
+  function showOnly(id){
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('hidden', v.id !== id));
+  }
+
+  function updateNavUser(){
+    const block = document.getElementById('nav-user-block');
+    if(isAuthed()){
+      block.classList.remove('hidden');
+      document.getElementById('nav-username').textContent = getUsername();
+    } else {
+      block.classList.add('hidden');
+    }
+  }
+
+  window.addEventListener('hashchange', route);
+
+  /* ============================================================
+     LOGIN
+     ============================================================ */
+  document.getElementById('login-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const uField = document.getElementById('field-username');
+    const pField = document.getElementById('field-password');
+    const u = document.getElementById('login-username').value.trim();
+    const p = document.getElementById('login-password').value;
+    uField.classList.toggle('has-error', !u);
+    pField.classList.toggle('has-error', !p);
+    if(!u || !p) return;
+    setSession(u);
+    navigate('/tenants');
+    route();
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    clearSession();
+    navigate('/');
+    route();
+  });
+
+  /* ============================================================
+     TENANT LIST
+     ============================================================ */
+  function renderTenantList(){
+    const tenants = loadTenants();
+    const grid = document.getElementById('tenant-grid');
+    const empty = document.getElementById('tenant-empty');
+
+    if(tenants.length === 0){
+      grid.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    grid.innerHTML = tenants.map(t => {
+      const lbs = generateLbList(t);
+      const okCount = lbs.filter(l => l.status === 'ok').length;
+      const overall = lbs.some(l=>l.status==='err') ? 'err' : lbs.some(l=>l.status==='warn') ? 'warn' : 'ok';
+      const overallText = overall === 'ok' ? 'Healthy' : overall === 'warn' ? 'Degraded' : 'Issues detected';
+      return `
+        <div class="card tenant-card" data-tenant="${escapeAttr(t.tenantId)}">
+          <div class="row1">
+            <h3>${escapeHtml(t.name)}</h3>
+          </div>
+          <div class="tenant-id">${escapeHtml(t.tenantId)}</div>
+          <div style="margin-top:10px; font-size:12.5px; color:var(--text-dim);">
+            <span class="status-dot ${overall}"></span>${overallText}
+          </div>
+          <div class="meta">
+            <div><b>${lbs.length}</b>HTTP LBs</div>
+            <div><b>${okCount}</b>Online</div>
+          </div>
+          <div class="card-actions">
+            <button class="btn small primary" data-open="${escapeAttr(t.tenantId)}">Open dashboard</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.tenant-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if(e.target.closest('button')) return;
+        navigate('/tenant/' + encodeURIComponent(card.dataset.tenant));
+      });
+    });
+    grid.querySelectorAll('[data-open]').forEach(btn => {
+      btn.addEventListener('click', () => navigate('/tenant/' + encodeURIComponent(btn.dataset.open)));
+    });
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function escapeAttr(s){ return escapeHtml(s); }
+
+  /* ============================================================
+     ADD TENANT MODAL
+     ============================================================ */
+  const modal = document.getElementById('modal-add-tenant');
+  function openAddTenantModal(){
+    document.getElementById('add-tenant-form').reset();
+    ['field-tenant-name','field-tenant-id','field-tenant-key'].forEach(id => document.getElementById(id).classList.remove('has-error'));
+    document.getElementById('tenant-key').type = 'password';
+    document.getElementById('btn-toggle-key').textContent = 'Show';
+    modal.classList.remove('hidden');
+    document.getElementById('tenant-name').focus();
+  }
+  function closeAddTenantModal(){ modal.classList.add('hidden'); }
+
+  document.getElementById('btn-open-add-tenant').addEventListener('click', openAddTenantModal);
+  document.getElementById('btn-open-add-tenant-2').addEventListener('click', openAddTenantModal);
+  document.getElementById('btn-cancel-add-tenant').addEventListener('click', closeAddTenantModal);
+  modal.addEventListener('click', (e) => { if(e.target === modal) closeAddTenantModal(); });
+
+  document.getElementById('btn-toggle-key').addEventListener('click', () => {
+    const input = document.getElementById('tenant-key');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    document.getElementById('btn-toggle-key').textContent = show ? 'Hide' : 'Show';
+  });
+
+  document.getElementById('add-tenant-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const nameEl = document.getElementById('tenant-name');
+    const idEl = document.getElementById('tenant-id');
+    const keyEl = document.getElementById('tenant-key');
+    const name = nameEl.value.trim();
+    const tenantId = idEl.value.trim();
+    const apiKey = keyEl.value.trim();
+
+    let ok = true;
+    const tenants = loadTenants();
+    toggleFieldError('field-tenant-name', !name); if(!name) ok = false;
+    toggleFieldError('field-tenant-id', !tenantId); if(!tenantId) ok = false;
+    toggleFieldError('field-tenant-key', !apiKey); if(!apiKey) ok = false;
+
+    if(tenantId && tenants.some(t => t.tenantId.toLowerCase() === tenantId.toLowerCase())){
+      toggleFieldError('field-tenant-id', true, 'A tenant with this ID is already monitored.');
+      ok = false;
+    }
+    if(!ok) return;
+
+    tenants.push({
+      name, tenantId, apiKey,
+      createdAt: new Date().toISOString(),
+    });
+    saveTenants(tenants);
+    closeAddTenantModal();
+    navigate('/tenant/' + encodeURIComponent(tenantId));
+    route();
+  });
+
+  function toggleFieldError(fieldId, isError, message){
+    const field = document.getElementById(fieldId);
+    field.classList.toggle('has-error', !!isError);
+    if(message) field.querySelector('.error').textContent = message;
+  }
+
+  /* ============================================================
+     TENANT DASHBOARD
+     ============================================================ */
+  function findTenant(tenantId){
+    return loadTenants().find(t => t.tenantId === tenantId);
+  }
+
+  function renderDashboardView(tenantId){
+    const tenant = findTenant(tenantId);
+    if(!tenant){ navigate('/tenants'); return; }
+
+    document.getElementById('db-crumb-name').textContent = tenant.name;
+    document.getElementById('db-tenant-name').textContent = tenant.name;
+    document.getElementById('db-tenant-id').textContent = tenant.tenantId;
+
+    const rangeBar = document.getElementById('range-select');
+    setActiveRangeButton(rangeBar, dbRange);
+    rangeBar.onclick = (e) => {
+      const btn = e.target.closest('button[data-range]');
+      if(!btn) return;
+      dbRange = btn.dataset.range;
+      setActiveRangeButton(rangeBar, dbRange);
+      const series = generateSeries(tenant.tenantId, dbRange);
+      renderMetricPanels(document.getElementById('db-panel-grid'), document.getElementById('db-stat-row'), series);
+    };
+
+    const series = generateSeries(tenant.tenantId, dbRange);
+    renderMetricPanels(document.getElementById('db-panel-grid'), document.getElementById('db-stat-row'), series);
+
+    // HTTP LB list
+    const lbs = generateLbList(tenant);
+    const lbList = document.getElementById('lb-list');
+    lbList.innerHTML = lbs.map(lb => {
+      const lbSeries = generateSeries(tenant.tenantId + ':' + lb.name, 'daily');
+      const lastReq = lbSeries.requests[lbSeries.requests.length-1].value;
+      const lastLat = lbSeries.latencyP95[lbSeries.latencyP95.length-1].value;
+      const statusText = lb.status === 'ok' ? 'Online' : lb.status === 'warn' ? 'Degraded' : 'Offline';
+      return `
+        <div class="lb-row" data-lb="${escapeAttr(lb.name)}">
+          <div>
+            <div class="lb-name">${escapeHtml(lb.name)}</div>
+            <div class="lb-domain">${escapeHtml(lb.domain)}</div>
+          </div>
+          <div class="lb-stats">
+            <div class="mini"><div class="n">${formatNum(lastReq)}</div><div class="l">req/day</div></div>
+            <div class="mini"><div class="n">${lastLat}ms</div><div class="l">P95</div></div>
+            <span class="badge ${lb.status}">${statusText}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    lbList.querySelectorAll('.lb-row').forEach(row => {
+      row.addEventListener('click', () => {
+        navigate('/tenant/' + encodeURIComponent(tenant.tenantId) + '/lb/' + encodeURIComponent(row.dataset.lb));
+      });
+    });
+
+    document.getElementById('btn-remove-tenant').onclick = () => {
+      if(!confirm(`Remove tenant "${tenant.name}" from monitoring? This only affects this browser's local data.`)) return;
+      const remaining = loadTenants().filter(t => t.tenantId !== tenant.tenantId);
+      saveTenants(remaining);
+      navigate('/tenants');
+      route();
+    };
+  }
+
+  function setActiveRangeButton(bar, range){
+    bar.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.range === range));
+  }
+
+  /* ============================================================
+     LB DETAIL VIEW
+     ============================================================ */
+  function renderLbView(tenantId, lbName){
+    const tenant = findTenant(tenantId);
+    if(!tenant){ navigate('/tenants'); return; }
+    const lbs = generateLbList(tenant);
+    const lb = lbs.find(l => l.name === lbName);
+    if(!lb){ navigate('/tenant/' + encodeURIComponent(tenantId)); return; }
+
+    document.getElementById('lb-crumb-tenant').textContent = tenant.name;
+    document.getElementById('lb-crumb-tenant').onclick = (e) => { e.preventDefault(); navigate('/tenant/' + encodeURIComponent(tenantId)); };
+    document.getElementById('lb-crumb-name').textContent = lb.name;
+    document.getElementById('lb-name').textContent = lb.name;
+    document.getElementById('lb-domain').textContent = lb.domain;
+    const statusText = lb.status === 'ok' ? 'Online' : lb.status === 'warn' ? 'Degraded' : 'Offline';
+    const badge = document.getElementById('lb-status-badge');
+    badge.textContent = statusText;
+    badge.className = 'badge ' + lb.status;
+
+    const rangeBar = document.getElementById('lb-range-select');
+    setActiveRangeButton(rangeBar, lbRange);
+    rangeBar.onclick = (e) => {
+      const btn = e.target.closest('button[data-range]');
+      if(!btn) return;
+      lbRange = btn.dataset.range;
+      setActiveRangeButton(rangeBar, lbRange);
+      const series = generateSeries(tenant.tenantId + ':' + lb.name, lbRange);
+      renderMetricPanels(document.getElementById('lb-panel-grid'), document.getElementById('lb-stat-row'), series);
+    };
+
+    const series = generateSeries(tenant.tenantId + ':' + lb.name, lbRange);
+    renderMetricPanels(document.getElementById('lb-panel-grid'), document.getElementById('lb-stat-row'), series);
+  }
+
+  /* ============================================================
+     INIT
+     ============================================================ */
+  route();
+})();
+</script>
+</body>
+</html>
